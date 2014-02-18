@@ -1,0 +1,55 @@
+<h1>Search books</h1>
+
+<h2>Public</h2>
+<input type="text" placeholder="Search for books" id="q" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+<ul id="results">
+</ul>
+
+<h2>Secured</h2>
+<input type="text" placeholder="Search for books" id="q_secured" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+<ul id="results_secured">
+</ul>
+
+<script type="text/javascript">
+  $(document).ready(function() {
+    // public
+    var algolia = new AlgoliaSearch('<%= ENV['ALGOLIA_APPLICATION_ID'] %>', '<%= ENV['ALGOLIA_PUBLIC_API_KEY'] %>');
+    var index = algolia.initIndex('<%= Book::PUBLIC_INDEX_NAME %>');
+    var $results = $('#results');
+    var $q = $('#q');
+
+    $q.keyup(function() {
+      index.search($q.val(), searchCallback)
+    }).focus();
+
+    function searchCallback(success, content) {
+      if (!success) {
+        // error
+        console.log(content);
+        return;
+      }
+      if (content.query != $q.val()) {
+        // outdated
+        return;
+      }
+      if (content.hits.length === 0 || content.query === '') {
+        // no results
+        $results.empty();
+        return;
+      }
+
+      var html = '';
+      for (var i = 0; i < content.hits.length; ++i) {
+        html += '<li>' + content.hits[i]._highlightResult.name.value + '</li>';
+      }
+      $results.html(html);
+    }
+
+    // private
+    var $results_secured = $('#results_secured');
+    var $q_secured = $('#q_secured');
+    $q_secured.keyup(function() {
+      $results_secured.load('<%= search_books_path %>?q=' + encodeURIComponent($q_secured.val()));
+    });    
+  });
+</script>
